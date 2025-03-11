@@ -872,6 +872,8 @@ systemctl restart network
 
 # 第04章 ShardingSphere-JDBC读写分离
 
+> mysql主从同步是读写分离的基础
+>
 > 主从复制配合读写分离,这是 MySQL 主从复制最常见的应用场景之一,能够有效分担主服务器的压力，提升系统性能和可扩展性，同时保证高可用性。
 >
 > 主从复制的实际意义，关键在于 **需求**。如果你的应用需要处理大量的读取操作，结合读写分离会更有效。如果仅仅需要提高数据的可用性、容灾恢复或者备份能力，单独使用主从复制也是非常有价值的。
@@ -1811,7 +1813,9 @@ spring.shardingsphere.rules.sharding.sharding-algorithms.alg_mod.props.sharding-
 xxx.actual-data-nodes=server-order$->{0..1}.t_order0
 ```
 
-
+> ```
+> 与垂直分片的最大区别 actual-data-nodes 会配置多个分片，并在后面配置分片策略 否则会报错
+> ```
 
 测试：可以分别测试行表达式分片算法和取模分片算法
 
@@ -1940,7 +1944,7 @@ public void testShardingSelectByUserId(){
 >
 > 可以提高查询效率
 >
-> 有多重分片算法 不同分片算法用于不同场景
+> 有多种分片算法 不同分片算法用于不同场景
 
 结果展示
 
@@ -2222,6 +2226,12 @@ spring.shardingsphere.rules.sharding.binding-tables[0]=t_order,t_order_item
 
 `绑定表：`指分片规则一致的一组分片表。 使用绑定表进行多表关联查询时，必须使用分片键进行关联，否则会出现笛卡尔积关联或跨库关联，从而影响查询效率。
 
+> 分片键 order_no
+
+### 4.5 绑定表执行结果展示
+
+![](/images/绑定表执行结果展示.png)
+
 ## 5、广播表
 
 ### 4.1、什么是广播表
@@ -2236,7 +2246,7 @@ spring.shardingsphere.rules.sharding.binding-tables[0]=t_order,t_order_item
 
 （3）可以跟任何一个表进行 JOIN 操作
 
-
+> 广播表避免了跨库关联
 
 ### 4.2、创建广播表
 
@@ -2324,9 +2334,19 @@ public void testSelectBroadcast(){
 }
 ```
 
+4.5 广播表结果展示
 
+广播表插入结果展示
 
-其他的一些有关问题
+![](/images/广播表插入结果展示.jpg)
+
+广播表查询结果展示
+
+![](/images/广播表查询结果展示.jpg)
+
+> 会在随机一个数据源中进行查询
+
+## 其他的一些有关问题
 
 >**ShardingSphere 是否支持垂直分表？**
 >
@@ -2343,10 +2363,6 @@ public void testSelectBroadcast(){
 `ShardingDataSource` 是 Sharding-JDBC 的入口类，负责管理多个数据源，并提供路由功能。
 
 **核心代码**：
-
-java
-
-复制
 
 ```
 public final class ShardingDataSource extends AbstractDataSourceAdapter {

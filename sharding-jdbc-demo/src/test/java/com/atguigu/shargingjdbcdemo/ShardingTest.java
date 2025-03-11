@@ -30,123 +30,6 @@ public class ShardingTest {
     private DictMapper dictMapper;
 
 
-
-
-
-    /**
-     * 水平分片：分表插入数据测试
-     */
-    @Test
-    public void testInsertOrderTableStrategy(){
-
-        for (long i = 1; i < 5; i++) {
-
-            Order order = new Order();
-            order.setOrderNo("ATGUIGU" + i);
-            order.setUserId(1L);
-            order.setAmount(new BigDecimal(100));
-            orderMapper.insert(order);
-        }
-
-        for (long i = 5; i < 9; i++) {
-
-            Order order = new Order();
-            order.setOrderNo("ATGUIGU" + i);
-            order.setUserId(2L);
-            order.setAmount(new BigDecimal(100));
-            orderMapper.insert(order);
-        }
-    }
-
-    /**
-     * 测试哈希取模
-     */
-    @Test
-    public void testHash(){
-
-        //注意hash取模的结果是整个字符串hash后再取模，和数值后缀是什么无关
-        System.out.println("ATGUIGU001".hashCode() % 2);
-        System.out.println("ATGUIGU0011".hashCode() % 2);
-    }
-
-
-    /**
-     * 水平分片：查询所有记录
-     * 查询了两个数据源，每个数据源中使用UNION ALL连接两个表
-     */
-    @Test
-    public void testShardingSelectAll(){
-
-        List<Order> orders = orderMapper.selectList(null);
-        orders.forEach(System.out::println);
-    }
-
-    /**
-     * 水平分片：根据user_id查询记录
-     * 查询了一个数据源，每个数据源中使用UNION ALL连接两个表
-     */
-    @Test
-    public void testShardingSelectByUserId(){
-
-        QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
-        orderQueryWrapper.eq("user_id", 1L);
-        List<Order> orders = orderMapper.selectList(orderQueryWrapper);
-        orders.forEach(System.out::println);
-    }
-
-
-    /**
-     * 测试关联表的插入
-     */
-    @Test
-    public void testInsertOrderAndOrderItem(){
-
-        for (long i = 1; i < 5; i++) {
-
-            Order order = new Order();
-            order.setOrderNo("ATGUIGU" + i);
-            order.setUserId(1L);
-            orderMapper.insert(order);
-
-            for (int j = 0; j < 3; j++) {
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrderNo("ATGUIGU" + i);
-                orderItem.setUserId(1L);
-                orderItem.setPrice(new BigDecimal(10));
-                orderItem.setCount(2);
-                orderItemMapper.insert(orderItem);
-            }
-        }
-
-        for (long i = 5; i < 9; i++) {
-
-            Order order = new Order();
-            order.setOrderNo("ATGUIGU" + i);
-            order.setUserId(2L);
-            orderMapper.insert(order);
-
-            for (int j = 0; j < 3; j++) {
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrderNo("ATGUIGU" + i);
-                orderItem.setUserId(2L);
-                orderItem.setPrice(new BigDecimal(3));
-                orderItem.setCount(3);
-                orderItemMapper.insert(orderItem);
-            }
-        }
-    }
-
-
-    /**
-     * 测试关联表查询
-     */
-    @Test
-    public void testGetOrderAmount(){
-        List<OrderVo> orderAmountList = orderMapper.getOrderAmount();
-        orderAmountList.forEach(System.out::println);
-    }
-
-
     /**
      * 广播表：插入测试
      */
@@ -157,8 +40,17 @@ public class ShardingTest {
         dict.setDictType("type1");
         dictMapper.insert(dict);
     }
+//2025-03-04 20:41:12.821  INFO 11272 --- [main] ShardingSphere-SQL: Logic SQL: INSERT INTO t_dict  ( id,dict_type )  VALUES  ( ?,? )
+//2025-03-04 20:41:12.822  INFO 11272 --- [main] ShardingSphere-SQL: SQLStatement: MySQLInsertStatement(setAssignment=Optional.empty, onDuplicateKeyColumns=Optional.empty)
+//2025-03-04 20:41:12.822  INFO 11272 --- [main] ShardingSphere-SQL: Actual SQL: server-order0 ::: INSERT INTO t_dict  ( id,dict_type )  VALUES  (?, ?) ::: [1896903753334181890, type1]
+//2025-03-04 20:41:12.822  INFO 11272 --- [main] ShardingSphere-SQL: Actual SQL: server-order1 ::: INSERT INTO t_dict  ( id,dict_type )  VALUES  (?, ?) ::: [1896903753334181890, type1]
+//2025-03-04 20:41:12.822  INFO 11272 --- [main] ShardingSphere-SQL: Actual SQL: server-user ::: INSERT INTO t_dict  ( id,dict_type )  VALUES  (?, ?) ::: [1896903753334181890, type1]
 
 
+    /**
+     * 广播表：查询测试
+     * 会在随机一个数据源中进行查询
+     */
     @Test
     public void testSelectBroadcast(){
 
@@ -170,4 +62,23 @@ public class ShardingTest {
         dictMapper.selectList(null);
         dictList.forEach(System.out::println);
     }
+//2025-03-04 20:42:40.222  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.222  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.222  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-order1 ::: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.279  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.279  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.279  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-user ::: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.281  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.281  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.281  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-order1 ::: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.282  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.283  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.283  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-order0 ::: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.284  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.284  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.284  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-order1 ::: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.285  INFO 34624 --- [main] ShardingSphere-SQL: Logic SQL: SELECT  id,dict_type  FROM t_dict
+//2025-03-04 20:42:40.285  INFO 34624 --- [main] ShardingSphere-SQL: SQLStatement: MySQLSelectStatement(table=Optional.empty, limit=Optional.empty, lock=Optional.empty, window=Optional.empty)
+//2025-03-04 20:42:40.285  INFO 34624 --- [main] ShardingSphere-SQL: Actual SQL: server-user ::: SELECT  id,dict_type  FROM t_dict
+//Dict(id=1896903753334181890, dictType=type1)
 }
